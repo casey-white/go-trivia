@@ -1,9 +1,10 @@
-package models
+package quiz_response
 
 import (
 	"database/sql"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -42,6 +43,36 @@ func LoadOneQuizResponse(apiURL string) (*QuizResponse, error) {
 	return &data, nil
 }
 
+func LoadOneQuiz(db *sql.DB, category string) *Quiz {
+	quiz := &Quiz{}
+
+	if category == "multiple" {
+
+		loadQuizQuery := `
+			SELECT * from quizzes join incorrect_answers on quizzes.id = incorrect_answers.question_id WHERE type = 'multiple' order by random() limit 1
+		`
+
+		err := db.QueryRow(loadQuizQuery).Scan(&quiz.Category, &quiz.Type, &quiz.Difficulty, &quiz.Question, &quiz.CorrectAnswer, &quiz.IncorrectAnswers)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	}
+
+	if category == "boolean" {
+		loadQuizQuery := `SELECT * from quizzes WHERE type = 'boolean' order by random() limit 1`
+
+		err := db.QueryRow(loadQuizQuery).Scan(&quiz.Category, &quiz.Type, &quiz.Difficulty, &quiz.Question, &quiz.CorrectAnswer)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	return quiz
+}
+
 func SaveQuiz(db *sql.DB, quiz Quiz) error {
 	insertQuizQuery := `
 		INSERT INTO quizzes (category, type, difficulty, question, correct_answer)
@@ -55,16 +86,17 @@ func SaveQuiz(db *sql.DB, quiz Quiz) error {
 		return err
 	}
 
-	// TODO: Be prepared for the scenario that a question is not multiple choice
-	insertAnswerQuery := `
-		INSERT INTO incorrect_answers (question_id, answer)
-		VALUES ($1, $2)
-	`
+	if quiz.Category == "multiple" {
+		insertAnswerQuery := `
+			INSERT INTO incorrect_answers (question_id, answer)
+			VALUES ($1, $2)
+		`
 
-	for _, answer := range quiz.IncorrectAnswers {
-		_, err = db.Exec(insertAnswerQuery, id, answer)
-		if err != nil {
-			return err
+		for _, answer := range quiz.IncorrectAnswers {
+			_, err = db.Exec(insertAnswerQuery, id, answer)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

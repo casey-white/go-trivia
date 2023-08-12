@@ -6,3 +6,9 @@ CREATE TABLE quizzes (
     question TEXT,
     correct_answer TEXT
 );
+
+CREATE TABLE incorrect_answers (
+    id SERIAL PRIMARY KEY,
+    question_id INTEGER REFERENCES quizzes(id),
+    answer TEXT
+)

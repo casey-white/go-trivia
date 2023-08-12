@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"go-trivia/models"
+	"go-trivia/models/quiz_response"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -17,15 +17,19 @@ func main() {
 	db := initDB()
 	defer db.Close()
 
-	data, err := models.LoadOneQuizResponse("https://opentdb.com/api.php?amount=1")
+	data, err := quiz_response.LoadOneQuizResponse("https://opentdb.com/api.php?amount=1")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Print the data
 	for _, quiz := range data.Results {
-		models.SaveQuiz(db, quiz)
+		quiz_response.SaveQuiz(db, quiz)
 	}
+
+	quiz := quiz_response.LoadOneQuiz(db, "multiple")
+
+	fmt.Println(quiz)
 }
 
 func initDB() *sql.DB {
