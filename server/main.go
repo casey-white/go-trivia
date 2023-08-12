@@ -2,69 +2,50 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"log"
+	"os"
 
+	"go-trivia/models"
+
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
-type QuizResponse struct {
-	ResponseCode int    `json:"response_code"`
-	Results      []Quiz `json:"results"`
-}
-
-type Quiz struct {
-	Category         string   `json:"category"`
-	Type             string   `json:"type"`
-	Difficulty       string   `json:"difficulty"`
-	Question         string   `json:"question"`
-	CorrectAnswer    string   `json:"correct_answer"`
-	IncorrectAnswers []string `json:"incorrect_answers"`
-}
-
 func main() {
 
-	connStr := "user=username dbname=dbname password=password host=host port=5432 sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		panic(err)
-	}
+	db := initDB()
 	defer db.Close()
 
-	// Create a new HTTP request
-	req, err := http.NewRequest("GET", "https://opentdb.com/api.php?amount=1", nil)
+	data, err := models.LoadOneQuizResponse("https://opentdb.com/api.php?amount=1")
 	if err != nil {
-		panic(err)
-	}
-
-	// Send the request and get the response
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		panic(err)
-	}
-
-	// Check if the response status code is 200
-	if resp.StatusCode != 200 {
-		panic(fmt.Sprintf("status code: %d", resp.StatusCode))
-	}
-
-	// Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		panic(err)
-	}
-
-	// Unmarshal the JSON data into a map
-	var data QuizResponse
-	err = json.Unmarshal(body, &data)
-	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// Print the data
 	for _, quiz := range data.Results {
-		fmt.Println(quiz.Question)
+		models.SaveQuiz(db, quiz)
 	}
+}
+
+func initDB() *sql.DB {
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		panic(err)
+	}
+
+	dbUser := os.Getenv("DB_USER")
+	dbName := os.Getenv("DB_NAME")
+	dbPassword := os.Getenv("DB_PASSWORD")
+
+	connStr := fmt.Sprintf("user=%s dbname=%s password=%s host=db port=5432 sslmode=disable", dbUser, dbName, dbPassword)
+
+	db, err := sql.Open("postgres", connStr)
+
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	return db
 }
