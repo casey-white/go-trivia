@@ -1,0 +1,4 @@
+FROM postgres:latest
+
+COPY ./migrations /migrations
+COPY ./run-migrations.sh /docker-entrypoint-initdb.d/run-migrations.sh
