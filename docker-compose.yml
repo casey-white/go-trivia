@@ -2,21 +2,23 @@ version: "3.8"
 
 services:
   web:
-    build: .
+    build:
+      context: ./server
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      - .:/usr/src/app
+      - ./server:/usr/src/app
     command: go run main.go
   db:
-    image: postgres:alpine
+    build: 
+      context: .
+      dockerfile: ./Dockerfile.db 
     ports:
       - "5432:5432"
     volumes:
-      - postgres-db:/var/lib/postgresql/data
+      - ./migrations:/migrations
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
-volumes:
-  postgres-db:
