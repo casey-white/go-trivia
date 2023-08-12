@@ -43,7 +43,30 @@ func LoadOneQuizResponse(apiURL string) (*QuizResponse, error) {
 }
 
 func SaveQuiz(db *sql.DB, quiz Quiz) error {
-	query := `INSERT INTO quizzes (category, type, difficulty, question, correct_answer) VALUES ($1, $2, $3, $4, $5)`
-	_, err := db.Exec(query, quiz.Category, quiz.Type, quiz.Difficulty, quiz.Question, quiz.CorrectAnswer)
-	return err
+	insertQuizQuery := `
+		INSERT INTO quizzes (category, type, difficulty, question, correct_answer)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
+	`
+
+	var id int
+	err := db.QueryRow(insertQuizQuery, quiz.Category, quiz.Type, quiz.Difficulty, quiz.Question, quiz.CorrectAnswer).Scan(&id)
+	if err != nil {
+		return err
+	}
+
+	// TODO: Be prepared for the scenario that a question is not multiple choice
+	insertAnswerQuery := `
+		INSERT INTO incorrect_answers (question_id, answer)
+		VALUES ($1, $2)
+	`
+
+	for _, answer := range quiz.IncorrectAnswers {
+		_, err = db.Exec(insertAnswerQuery, id, answer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
