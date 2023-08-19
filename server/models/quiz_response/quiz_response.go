@@ -43,7 +43,7 @@ func LoadOneQuizResponse(apiURL string) (*QuizResponse, error) {
 	return &data, nil
 }
 
-func LoadOneQuiz(db *sql.DB, category string) *Quiz {
+func LoadOneQuiz(db *sql.DB, category string) (*Quiz, error) {
 	quiz := &Quiz{}
 
 	if category == "multiple" {
@@ -70,7 +70,7 @@ func LoadOneQuiz(db *sql.DB, category string) *Quiz {
 		}
 	}
 
-	return quiz
+	return quiz, nil
 }
 
 func SaveQuiz(db *sql.DB, quiz Quiz) error {
@@ -86,7 +86,7 @@ func SaveQuiz(db *sql.DB, quiz Quiz) error {
 		return err
 	}
 
-	if quiz.Category == "multiple" {
+	if quiz.Type == "multiple" {
 		insertAnswerQuery := `
 			INSERT INTO incorrect_answers (question_id, answer)
 			VALUES ($1, $2)

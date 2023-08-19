@@ -6,10 +6,12 @@ services:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "8080:8080"
     volumes:
       - ./server:/usr/src/app
     command: go run main.go
+    # depends_on:
+    #   - db
   db:
     build: 
       context: .
@@ -17,8 +19,11 @@ services:
     ports:
       - "5432:5432"
     volumes:
+      - postgres_data:/var/lib/postgresql/data
       - ./migrations:/migrations
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+volumes:
+  postgres_data:

@@ -2,22 +2,25 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
-	"log"
-	"os"
-
 	"go-trivia/models/quiz_response"
+	"log"
+	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
-func main() {
+var db *sql.DB = initDB()
 
-	db := initDB()
+func main() {
 	defer db.Close()
 
-	data, err := quiz_response.LoadOneQuizResponse("https://opentdb.com/api.php?amount=1")
+	http.HandleFunc("/quiz", handleQuiz)
+
+	data, err := quiz_response.LoadOneQuizResponse("https://opentdb.com/api.php?amount=5")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,9 +30,31 @@ func main() {
 		quiz_response.SaveQuiz(db, quiz)
 	}
 
-	quiz := quiz_response.LoadOneQuiz(db, "multiple")
+	// quiz := quiz_response.LoadOneQuiz(db, "multiple")
 
-	fmt.Println(quiz)
+	// fmt.Println(quiz)
+	http.ListenAndServe(":8080", nil)
+}
+
+func handleQuiz(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		getQuiz(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func getQuiz(w http.ResponseWriter, r *http.Request) {
+	data, err := quiz_response.LoadOneQuiz(db, "multiple")
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
+
 }
 
 func initDB() *sql.DB {
